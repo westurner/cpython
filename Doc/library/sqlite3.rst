@@ -242,6 +242,7 @@ inserted data and retrieved values from it in multiple ways.
      * :ref:`sqlite3-adapters`
      * :ref:`sqlite3-converters`
      * :ref:`sqlite3-connection-context-manager`
+     * :ref:`sqlite3-howto-wal`
      * :ref:`sqlite3-howto-row-factory`
 
    * :ref:`sqlite3-explanation` for in-depth background on transaction control.
@@ -2482,6 +2483,38 @@ More information about this feature, including a list of parameters,
 can be found in the `SQLite URI documentation`_.
 
 .. _SQLite URI documentation: https://www.sqlite.org/uri.html
+
+
+.. _sqlite3-howto-wal:
+
+How to enable Write-Ahead Logging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+SQLite supports `Write-Ahead Logging (WAL) <https://www.sqlite.org/wal.html>`_,
+an alternative journaling mode that can improve concurrency:
+readers do not block writers, and writers do not block readers.
+
+To enable WAL mode, execute ``PRAGMA journal_mode=WAL`` on a connection to the
+database file.
+The pragma must run outside a transaction, so run it when no transaction is
+active.
+One way to ensure this is to use :attr:`~Connection.autocommit`:
+
+.. testcode::
+
+   con = sqlite3.connect("example.db", autocommit=True)
+   con.execute("PRAGMA journal_mode=WAL")
+   con.close()
+
+If you use legacy transaction control
+(:attr:`~Connection.autocommit` set to
+:data:`~sqlite3.LEGACY_TRANSACTION_CONTROL`),
+set :attr:`~Connection.isolation_level` to ``None`` before running the pragma,
+or make sure any pending transaction is committed or rolled back first.
+
+WAL mode is persistent for a database file:
+after being set, it remains enabled for subsequent connections
+until changed with another ``PRAGMA journal_mode`` statement.
 
 
 .. _sqlite3-howto-row-factory:
